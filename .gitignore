@@ -12,3 +12,7 @@ lerna-debug.log
 # others
 packages/*/lib
 docs/
+
+# custom
+.DS_Store
+plan.json
