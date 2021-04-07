@@ -4,7 +4,7 @@ const { NearScanner } = require('@toio/scanner');
 const fs = require('fs');
 if (process.argv.length != 3) {
   console.log("planning file is required!");
-  console.log("> yarn run example:exec {planning_result}.json");
+  console.log("> yarn run app {planning_result}.json");
   process.exit(0);
 }
 
@@ -19,6 +19,7 @@ const POS_BUF = 1;
 const INTERVAL_MS = 50;
 const NIL = -1;
 const INIT_TIME_MS = 1500;
+const END_TIME_MS = 1500;
 const MOVE_SPEED = 80;
 
 let OCCUPIED = new Array(GRID_HEIGHT);
@@ -47,6 +48,8 @@ function move(cube, x, y) {
   cube.moveTo([ target ], {maxSpeed: MOVE_SPEED, moveType: 2});
 }
 
+let finish_cnt = 0;
+
 async function exec(cube) {
   console.log(cube.id, "start execution");
   cube.playPresetSound(4);
@@ -66,6 +69,17 @@ async function exec(cube) {
       cube.playPresetSound(2);
       clearInterval(loop);
       console.log(cube.id, "finish execution");
+      ++finish_cnt;
+
+      // lighting
+      setInterval(() => {
+        cube.turnOnLight({ durationMs: INTERVAL_MS, red: 0, green: 255, blue: 0 });
+      }, INTERVAL_MS);
+
+      // global termination
+      if (finish_cnt == NUM_AGNETS) {
+        setTimeout(() => { process.exit(0); }, END_TIME_MS);
+      }
       return;
     };
 

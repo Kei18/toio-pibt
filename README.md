@@ -19,6 +19,7 @@ yarn run app ./sample-plan.json
 ```
 
 ## Notes
+- This repository is forked from [toio.js](https://github.com/toio/toio.js). To make the repo private temporary, I duplicated the original repo.
 
 ## Licence
 This software is released under the MIT License, see [LICENCE.txt](LICENCE.txt).
