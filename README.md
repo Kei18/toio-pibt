@@ -32,7 +32,7 @@ zzzzz
 4. Set the toio robots in appropriate positions
 5. Execute
 ```sh
-yarn run app ./sample/plan.json ./sample/grid.json
+> yarn run app ./sample/plan.json ./sample/grid.json
 ```
 
 ## Licence
