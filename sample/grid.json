@@ -1,0 +1,8 @@
+{
+  "CELL_SIZE": 40,
+  "INIT_COORD_X": 120,
+  "INIT_COORD_Y": 160,
+  "WIDTH": 5,
+  "HEIGHT": 5,
+  "POS_BUF": 1
+}

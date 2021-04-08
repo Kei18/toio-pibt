@@ -2,39 +2,36 @@ const { NearScanner } = require('@toio/scanner');
 
 // read planning
 const fs = require('fs');
-if (process.argv.length != 3) {
+if (process.argv.length != 4) {
   console.log("planning file is required!");
-  console.log("> yarn run app {planning_result}.json");
+  console.log("> yarn run app {map_file}.json {planning_result}.json");
   process.exit(0);
 }
 
 const PLAN = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const GRID = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
 const NUM_AGNETS = Object.keys(PLAN).length;
-const GRID_SIZE = 40;
-const INIT_X = 120;
-const INIT_Y = 160;
-const GRID_WIDTH = 5;
-const GRID_HEIGHT = 5;
-const POS_BUF = 1;
 const INTERVAL_MS = 50;
 const NIL = -1;
 const INIT_TIME_MS = 1500;
 const END_TIME_MS = 1500;
 const MOVE_SPEED = 80;
 
-let OCCUPIED = new Array(GRID_HEIGHT);
-for (let y = 0; y < GRID_HEIGHT; ++y) {
-  OCCUPIED[y] = (new Array(GRID_WIDTH)).fill(false);
+// mutual exclusion
+let OCCUPIED = new Array(GRID["HEIGHT"]);
+for (let y = 0; y < GRID["HEIGHT"]; ++y) {
+  OCCUPIED[y] = (new Array(GRID["HEIGHT"])).fill(false);
 }
 
 function getPosFromGridToReal(x, y) {
-  return {"x": GRID_SIZE * x + INIT_X, "y": GRID_SIZE * y + INIT_Y};
+  return {"x": GRID["CELL_SIZE"] * x + GRID["INIT_COORD_X"],
+          "y": GRID["CELL_SIZE"] * y + GRID["INIT_COORD_Y"]};
 }
 
 function getPosFromRealToGrid(x, y) {
-  let _x = (x - INIT_X) / GRID_SIZE;
-  let _y = (y - INIT_Y) / GRID_SIZE;
-  if (Math.abs(_x - Math.round(_x)) < POS_BUF && Math.abs(_y - Math.round(_y))) {
+  let _x = (x - GRID["INIT_COORD_X"]) / GRID["CELL_SIZE"];
+  let _y = (y - GRID["INIT_COORD_Y"]) / GRID["CELL_SIZE"];
+  if (Math.abs(_x - Math.round(_x)) < GRID["POS_BUF"] && Math.abs(_y - Math.round(_y))) {
     return {"x": Math.round(_x), "y": Math.round(_y)};
   }
   // still moving
