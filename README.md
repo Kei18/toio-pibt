@@ -24,15 +24,15 @@ It is written in Node.js with [yarn](https://yarnpkg.com/) build and tested on M
 2. Get the id of the toio robots
 ```sh
 > yarn run get_id 3
-xxxxx
-yyyyy
-zzzzz
+xxxxx 0 green
+yyyyy 1 blue
+zzzzz 2 red
 ```
 3. Edit the id in the plan file (`./sample/plan.json`)
 4. Set the toio robots in appropriate positions
 5. Execute
 ```sh
-> yarn run app ./sample/plan.json ./sample/grid.json
+> yarn run exec ./sample/plan.json ./sample/grid.json
 ```
 
 ## Licence

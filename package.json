@@ -11,7 +11,7 @@
   "scripts": {
     "build": "lerna run build",
     "clean": "lerna run clean",
-    "app": "node src/index.js",
+    "exec": "node src/index.js",
     "get_id": "node src/get_id.js"
   },
   "devDependencies": {

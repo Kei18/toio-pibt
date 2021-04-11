@@ -11,7 +11,7 @@ if (process.argv.length != 4) {
 const PLAN = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const GRID = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
 const NUM_AGNETS = Object.keys(PLAN).length;
-const INTERVAL_MS = 50;
+const INTERVAL_MS = 300;
 const NIL = -1;
 const INIT_TIME_MS = 1500;
 const END_TIME_MS = 1500;
@@ -20,7 +20,7 @@ const MOVE_SPEED = 80;
 // mutual exclusion
 let OCCUPIED = new Array(GRID["HEIGHT"]);
 for (let y = 0; y < GRID["HEIGHT"]; ++y) {
-  OCCUPIED[y] = (new Array(GRID["HEIGHT"])).fill(false);
+  OCCUPIED[y] = (new Array(GRID["WIDTH"])).fill(NIL);
 }
 
 function getPosFromGridToReal(x, y) {
@@ -39,7 +39,7 @@ function getPosFromRealToGrid(x, y) {
 }
 
 function move(cube, x, y) {
-  OCCUPIED[y][x] = true;
+  OCCUPIED[y][x] = cube.id;
   let target = getPosFromGridToReal(x, y);
   console.log(cube.id, "move to", target);
   cube.moveTo([ target ], {maxSpeed: MOVE_SPEED, moveType: 2});
@@ -52,9 +52,8 @@ async function exec(cube) {
   cube.playPresetSound(4);
 
   let current_loc = { "x": NIL, "y": NIL };
-  cube.on('id:position-id', data => {
-    current_loc = getPosFromRealToGrid(data["x"], data["y"]);
-  });
+  cube
+    .on('id:position-id', data => { current_loc = getPosFromRealToGrid(data["x"], data["y"]); });
 
   let internal_clock = -1;
 
@@ -91,19 +90,18 @@ async function exec(cube) {
     if (current_loc["x"] == next_x && current_loc["y"] == next_y) {
       let prev_loc = PLAN[cube.id][internal_clock];
       if (internal_clock >= 0) {
-        OCCUPIED[prev_loc["y"]][prev_loc["x"]] = false;
+        OCCUPIED[prev_loc["y"]][prev_loc["x"]] = NIL;
       }
       ++internal_clock;
       console.log(cube.id, "clock=", internal_clock, ", loc=", current_loc);
       return;
     }
 
-    // when the next location is occupied by someone -> wait
-    if (OCCUPIED[next_y][next_x] === true) return;
-
-    // move to the next location
-    move(cube, next_x, next_y);
-
+    // check occupancy
+    if (OCCUPIED[next_y][next_x] === NIL || OCCUPIED[next_y][next_x] === cube.id) {
+      // move to the next location
+      move(cube, next_x, next_y);
+    }
   }, INTERVAL_MS);
 }
 
@@ -111,7 +109,7 @@ async function main() {
   // connection
   const cubes = await new NearScanner(NUM_AGNETS).start();
   for (let i = 0; i < NUM_AGNETS; ++i) {
-    console.log(cubes[i].id, "initialize");
+    console.log(cubes[i].id, i, "initialize");
 
     // connect to the cube
     let cube = await cubes[i].connect();
