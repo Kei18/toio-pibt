@@ -13,26 +13,23 @@ It is written in Node.js with [yarn](https://yarnpkg.com/) build and tested on M
 
 ## Install
 ```sh
-> git clone https://github.com/Kei18/toio-exec.git
-> cd toio-exec
-> yarn install
-> yarn build
+git clone https://github.com/Kei18/toio-exec.git
+cd toio-exec
+yarn install
+yarn build
 ```
 
 ## Usage
 1. Switch on your toio robots
 2. Get the id of the toio robots
 ```sh
-> yarn run get_id 3
-xxxxx 0 green
-yyyyy 1 blue
-zzzzz 2 red
+yarn run get_id 3
 ```
 3. Edit the id in the plan file (`./sample/plan.json`)
 4. Set the toio robots in appropriate positions
 5. Execute
 ```sh
-> yarn run exec ./sample/plan.json ./sample/grid.json
+yarn run exec ./sample/plan.json ./sample/grid.json
 ```
 
 ## Licence
