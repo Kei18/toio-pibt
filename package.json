@@ -28,5 +28,8 @@
     "rimraf": "^2.6.3",
     "typedoc": "^0.16.9",
     "typedoc-plugin-lerna-packages": "^0.1.5"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
   }
 }
