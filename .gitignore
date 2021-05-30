@@ -16,3 +16,4 @@ docs/
 # custom
 .DS_Store
 local/
+build/
