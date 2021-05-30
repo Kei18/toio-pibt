@@ -68,13 +68,13 @@ int main(int argc, char *argv[])
   std::ofstream log;
   log.open(filename_output, std::ios::out);
   for (int i = 0; i < (int)agent_names.size(); ++i) {
-    log << agent_names[i] << "\n"
+    log << agent_names[i] << ":\n"
         << "  v: '" << starts[i]->id << "'\n"
-        << "  g: '" << goals[i]->id  << "'\n";
+        << "  g: '" << assigned_goals[i]->id  << "'\n";
   }
   log.close();
 
   // clear
   for (auto itr = V.begin(); itr != V.end(); ++itr) delete itr->second;
-  return 1;
+  return 0;
 }

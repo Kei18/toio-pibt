@@ -1,4 +1,7 @@
+const fs = require('fs');
+const yaml = require('js-yaml');
 const { NearScanner } = require('@toio/scanner');
+const { execSync } = require('child_process');
 
 const INTERVAL_MS = 100;
 const MOVE_SPEED = 80;
@@ -10,12 +13,16 @@ const END_TIME_MS = 1500;
 const MODE = { "CONTRACTED": 0, "EXTENDED": 1 };
 
 // read graph
-const fs = require('fs');
-const yaml = require('js-yaml');
-
+if (process.argv.length != 4) {
+  console.log("planning file is required!");
+  console.log("> yarn run exec {node-info}.yaml {problem-info}.yaml");
+  process.exit(0);
+}
+const filename_graph = process.argv[2];
+const filename_problem = process.argv[3];
 
 // store all nodes
-const V = yaml.load(fs.readFileSync("sample/graph.yaml", 'utf8'));
+const V = yaml.load(fs.readFileSync(filename_graph, 'utf8'));
 
 // store states of all agents
 // key: cube.id, value: id, v, g, mode, pos, v_next
@@ -28,7 +35,14 @@ let OCCUPIED = {};
 // DIST_TABLE[from][to] -> distance between from and to
 let DIST_TABLE = {};
 
-const INIT_STATES = yaml.load(fs.readFileSync("sample/init_agents.yaml", 'utf8'));
+let INIT_STATES = {};
+
+const setInitialAssignment = () => {
+  const filename_output = 'build/assignment.yaml';
+  const command = "./build/ta " + filename_graph + " " + filename_problem + " " + filename_output;
+  execSync(command);
+  INIT_STATES = yaml.load(fs.readFileSync(filename_output), 'utf8');
+};
 
 const getInitialSate = (id) => {
   return {
@@ -181,7 +195,7 @@ const checkAndResolveDeadlock = (original_id) => {
 
 };
 
-async function exec(cube) {
+async function execution(cube) {
 
   const id = cube.id;
 
@@ -235,10 +249,14 @@ async function exec(cube) {
 }
 
 async function main() {
-  const NUM_AGENTS = Object.keys(INIT_STATES).length;
-
   setupOccupiedTable();
   setupDistTable();
+
+  console.log("start assignment");
+  setInitialAssignment();
+  const NUM_AGENTS = Object.keys(INIT_STATES).length;
+
+  console.log("done, start connecting");
 
   // initialization
   const cubes = await new NearScanner(NUM_AGENTS).start();
@@ -261,7 +279,7 @@ async function main() {
 
   // execution
   setTimeout(() => {
-    for (let i = 0; i < NUM_AGENTS; ++i) exec(cubes[i]);
+    for (let i = 0; i < NUM_AGENTS; ++i) execution(cubes[i]);
   }, INIT_TIME_MS);
 
   // check termination
