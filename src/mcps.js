@@ -15,11 +15,12 @@ const MODE = { "CONTRACTED": 0, "EXTENDED": 1 };
 // read graph
 if (process.argv.length != 4) {
   console.log("planning file is required!");
-  console.log("> yarn run exec {node-info}.yaml {problem-info}.yaml");
+  console.log("> yarn run mcps {node-info}.yaml {plan-info}.yaml");
   process.exit(0);
 }
+
 const filename_graph = process.argv[2];
-const filename_problem = process.argv[3];
+const filename_plan = process.argv[3];
 
 // store all nodes
 const V = yaml.load(fs.readFileSync(filename_graph, 'utf8'));
@@ -32,26 +33,20 @@ let AGENTS = {};
 // key: node.id, value: agent.id or null
 let OCCUPIED = {};
 
-// DIST_TABLE[from][to] -> distance between from and to
-let DIST_TABLE = {};
+// used for preserving temporal dependencies
+// key: node.id, value: int
+let VISITED_COUNTS = {};
 
-let INIT_STATES = {};
-
-const setInitialAssignment = () => {
-  const filename_output = 'build/assignment.yaml';
-  const command = "./build/ta " + filename_graph + " " + filename_problem + " " + filename_output;
-  execSync(command);
-  INIT_STATES = yaml.load(fs.readFileSync(filename_output), 'utf8');
-};
+const PLANS = yaml.load(fs.readFileSync(filename_plan, 'utf8'));
 
 const getInitialSate = (id) => {
   return {
     "id": id,
-    "v": INIT_STATES[id].v,
-    "g": INIT_STATES[id].g,
+    "v": PLANS[id].plan[0],
     "v_next": null,
+    "clock": 0,
     "mode": MODE.CONTRACTED,
-    "pos": {},
+    "pos": {}
   };
 };
 
@@ -59,48 +54,12 @@ const setupOccupiedTable = () => {
   Object.keys(V).forEach(id => { OCCUPIED[id] = null; });
 };
 
-const setupDistTable = () => {
-  // Floyd Warshall Algorithm
-  const MAX_LEN = 10000000;
-
-  // initialize
-  for (let [i, v] of Object.entries(V)) {
-    DIST_TABLE[i] = {};
-    for (let [j, _] of Object.entries(V)) {
-      if (i == j) {
-        DIST_TABLE[i][j] = 0;
-      } else if (v.neigh.includes(j)) {
-        DIST_TABLE[i][j] = Math.sqrt(
-          Math.pow(v.pos.x - V[j].pos.x, 2) + Math.pow(v.pos.y - V[j].pos.y, 2)
-        );
-      } else {
-        DIST_TABLE[i][j] = MAX_LEN;
-      }
-    }
-  }
-
-  // update
-  for (let [k, _] of Object.entries(V)) {
-    for (let [i, _] of Object.entries(V)) {
-      for (let [j, _] of Object.entries(V)) {
-        DIST_TABLE[i][j] = Math.min(DIST_TABLE[i][j], DIST_TABLE[i][k] + DIST_TABLE[k][j]);
-      }
-    }
-  }
+const setupVisitedCntTable = () => {
+  Object.keys(V).forEach(id => { VISITED_COUNTS[id] = 0; });
 };
 
-const getNextLocation = (v_id, g_id) => {
-  // return argmin(dist(u, g))
-  let v_next_id = v_id;
-  let min_d = DIST_TABLE[v_id][g_id];
-  V[v_id].neigh.forEach((u_id) => {
-    let d = DIST_TABLE[u_id][g_id];
-    if (d < min_d) {
-      min_d = d;
-      v_next_id = u_id;
-    }
-  });
-  return v_next_id;
+const getNextLocation = (id) => {
+  return PLANS[id].plan[Math.min(AGENTS[id].clock+1, PLANS[id].plan.length-1)];
 };
 
 const stay_at = (pos, v_next_id) => {
@@ -120,6 +79,12 @@ const updateState = (cube) => {
 
   // update mode
   AGENTS[id].mode = MODE.CONTRACTED;
+
+  // update visited counts
+  VISITED_COUNTS[AGENTS[id].v] += 1;
+
+  // increment internal clock
+  AGENTS[id].clock += 1;
 
   // update occupancy
   OCCUPIED[AGENTS[id].v] = null;
@@ -157,42 +122,8 @@ const move = (cube, next_loc_id) => {
   cube.moveTo([ V[next_loc_id].pos ], {maxSpeed: MOVE_SPEED, moveType: 2});
 };
 
-const swapGoals = (agent1, agent2) => {
-  const tmp = AGENTS[agent1].g;
-  AGENTS[agent1].g = AGENTS[agent2].g;
-  AGENTS[agent2].g = tmp;
-};
-
-const checkAndResolveDeadlock = (original_id) => {
-  let A = [ original_id ];
-  let agent = AGENTS[original_id];
-
-  while (true) {
-    if (agent.mode == MODE.EXTENDED) return;  // still someone is moving -> wait
-    if (agent.v == agent.g) return;  // agents reaching goals -> not deadlock
-
-    let u_id = getNextLocation(agent.v, agent.g);
-    let id = getOccupyingAgentId(u_id);
-
-    if (id == null) return;  // next_loc is free -> not deadlock
-
-    // detecting deadlock
-    if (id == original_id) {
-      // rotate goals
-      const g = AGENTS[A[A.length - 1]].g;
-      for (let i = A.length - 1; i > 0; --i) {
-        AGENTS[A[i]].g = AGENTS[A[i-1]].g;
-      }
-      AGENTS[A[0]].g = g;
-      return;
-    }
-
-    if (A.includes(id)) return;  // there are deadlocks without original_id
-
-    agent = AGENTS[id];
-    A.push(agent.id);
-  }
-
+const checkTemporalDependencies = (id, next_loc_id) => {
+  return VISITED_COUNTS[next_loc_id] == PLANS[id].order[AGENTS[id].clock + 1];
 };
 
 async function execution(cube) {
@@ -217,50 +148,40 @@ async function execution(cube) {
     if (me.mode == MODE.EXTENDED) return;
 
     // check goal condition
-    if (me.v == me.g) return;
+    if (me.clock == PLANS[id].plan.length - 1) return;
 
     // get next location
-    const next_loc_id = getNextLocation(me.v, me.g);
+    const next_loc_id = getNextLocation(id);
 
     // check occupancy
     const other_id = getOccupyingAgentId(next_loc_id);
 
+    // case: occupied
+    if (other_id != null) return;
+
     // case: unoccupied
-    if (other_id == null) {
+    // check temporal dependencies
+    if (checkTemporalDependencies(id, next_loc_id)) {
       move(cube, next_loc_id);
-      return;
     }
-
-    const other = AGENTS[other_id];
-
-    // case: occupied, still moving
-    if (other.mode == MODE.EXTENDED) return;  // wait
-
-    // case: occupied, staying at goal
-    if (other.v == other.g) {
-      swapGoals(id, other.id);
-      return;
-    }
-
-    // case: others -> check deadlocks
-    checkAndResolveDeadlock(id);
 
   }, INTERVAL_MS);
 }
 
 async function main() {
   setupOccupiedTable();
-  setupDistTable();
+  setupVisitedCntTable();
 
   console.log("start assignment");
-  setInitialAssignment();
-  const NUM_AGENTS = Object.keys(INIT_STATES).length;
+  const NUM_AGENTS = Object.keys(PLANS).length;
 
-  console.log("done, start connecting");
+  console.log("done, start connecting: ", NUM_AGENTS);
 
   // initialization
   const cubes = await new NearScanner(NUM_AGENTS).start();
   for (let i = 0; i < NUM_AGENTS; ++i) {
+    console.log(cubes[i].id, i, "initialize");
+
     // connect to the cube
     let cube = await cubes[i].connect();
 
@@ -286,7 +207,7 @@ async function main() {
   setInterval(() => {
     for (let [id, agent] of Object.entries(AGENTS)) {
       if (agent.mode == MODE.EXTENDED) return;  // still moving
-      if (agent.v != agent.g) return;  // not at goal
+      if (agent.clock != PLANS[id].plan.length - 1) return;  // not at goal
     }
 
     console.log("finish execution");

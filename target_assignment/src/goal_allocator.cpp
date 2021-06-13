@@ -1,18 +1,30 @@
 #include "../include/goal_allocator.hpp"
 #include <iostream>
 
+std::function<bool(GoalAllocator::DijkstraNode, GoalAllocator::DijkstraNode)> GoalAllocator::dcompare =
+  [] (DijkstraNode a, DijkstraNode b)
+  {
+    if (std::get<1>(a) != std::get<1>(b)) return std::get<1>(a) > std::get<1>(b);
+    return std::get<0>(a)->id > std::get<0>(b)->id;
+  };
+
 
 GoalAllocator::GoalAllocator(const Nodes& _starts, const Nodes& _goals, const int nodes_num)
   : starts(_starts),
     goals(_goals),
     matching_cost(0),
     matching_makespan(0),
-    OPEN_LAZY((int)starts.size(), DijkstraQueue(GoalAllocator::compareDijkstraNodes)),
     DIST_LAZY((int)starts.size(), std::vector<float>(nodes_num, NIL))
 {
+  for (int i = 0; i < (int)starts.size(); ++i) {
+    auto Q = new std::priority_queue<DijkstraNode, DijkstraNodes, decltype(dcompare)>(dcompare);
+    OPEN_LAZY.push_back(Q);
+  }
 }
 
-GoalAllocator::~GoalAllocator() {}
+GoalAllocator::~GoalAllocator() {
+  for (auto Q : OPEN_LAZY) delete Q;
+}
 
 void GoalAllocator::assign()
 {
@@ -92,18 +104,18 @@ float GoalAllocator::getLazyEval(const int i, Node* const g)
   if (DIST_LAZY[i][g->id] != NIL) return DIST_LAZY[i][g->id];
 
   // initialize
-  if (OPEN_LAZY[i].empty()) {
-    OPEN_LAZY[i].push(std::make_tuple(starts[i], 0));
+  if (OPEN_LAZY[i]->empty()) {
+    OPEN_LAZY[i]->push(std::make_tuple(starts[i], 0));
   }
 
   // Dijkstra
-  while (!OPEN_LAZY[i].empty()) {
-    auto n = OPEN_LAZY[i].top();
+  while (!OPEN_LAZY[i]->empty()) {
+    auto n = OPEN_LAZY[i]->top();
     auto d_n = std::get<1>(n);
     auto v_n = std::get<0>(n);
 
     // pop
-    OPEN_LAZY[i].pop();
+    OPEN_LAZY[i]->pop();
 
     // already searched
     if (DIST_LAZY[i][v_n->id] >= 0) continue;
@@ -111,31 +123,26 @@ float GoalAllocator::getLazyEval(const int i, Node* const g)
     // update closed list
     DIST_LAZY[i][v_n->id] = d_n;
 
-    // check goal condition
-    if (v_n == g) {
-      // re-insert for next search
-      OPEN_LAZY[i].push(std::make_tuple(v_n, d_n));
-      return d_n;
-    }
-
+    // expand neighbors
     for (auto m : v_n->neighbor) {
       auto d_m_new = d_n + v_n->h_dist(m);
       auto d_m_old = DIST_LAZY[i][m->id];  // closed
       if (d_m_old >= 0 && d_m_old <= d_m_new) continue;
-      OPEN_LAZY[i].push(std::make_tuple(m, d_m_new));
+      OPEN_LAZY[i]->push(std::make_tuple(m, d_m_new));
     }
+
+    // check goal condition
+    if (v_n == g) return d_n;
   }
 
   // failure
-  std::cout << "unreachable node" << std::endl;
+  std::cout << "unreachable node"
+            << ", agent:" << i
+            << ", from:" << starts[i]->id
+            << ", to:" << g->id << std::endl;
+  std::exit(1);
   return NIL;
 }
-
-bool GoalAllocator::compareDijkstraNodes(DijkstraNode a, DijkstraNode b)
-{
-  if (std::get<1>(a) != std::get<1>(b)) return std::get<1>(a) > std::get<1>(b);
-  return false;
-};
 
 
 Nodes GoalAllocator::getAssignedGoals() const { return assigned_goals; }

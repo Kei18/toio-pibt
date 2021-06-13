@@ -11,7 +11,8 @@
   "scripts": {
     "build": "lerna run build",
     "clean": "lerna run clean",
-    "exec": "node src/index.js",
+    "tswap": "node src/tswap.js",
+    "mcps": "node src/mcps.js",
     "get_id": "node src/get_id.js"
   },
   "devDependencies": {

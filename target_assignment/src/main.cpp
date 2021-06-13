@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 {
   if (argc != 4) {
     std::cout << "invalid call\n"
-              << "> ta {filename_graph} {filename_problem} }filename_output}"
+              << "> ta {filename_graph} {filename_problem} {filename_output}"
               << std::endl;
     return 1;
   }
@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
   std::unordered_map<int, Node*> V;
 
   // load graph
+  int nodes_num = 0;
   YAML::Node config_V = YAML::LoadFile(filename_graph);
   for (auto itr = config_V.begin(); itr != config_V.end(); ++itr) {
     auto id = itr->first.as<int>();
@@ -30,6 +31,7 @@ int main(int argc, char *argv[])
     auto y = itr->second["pos"]["y"].as<float>();
     auto v = new Node((int)id, x, y);
     V[id] = v;
+    nodes_num = std::max(id, nodes_num);
   }
 
   // set adjacency
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
     goals.push_back(V[itr->second["g"].as<int>()]);
   }
 
-  auto ga = GoalAllocator(starts, goals, V.size());
+  auto ga = GoalAllocator(starts, goals, nodes_num);
   ga.assign();
 
   std::cout << "makespan=" << ga.getMakespan() << ", costs=" << ga.getCost() << std::endl;

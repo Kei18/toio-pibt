@@ -48,7 +48,6 @@ namespace LibGA
   };
 
   struct Matching {
-    const Nodes starts;
     const Nodes goals;
     const int N;                         // number of starts
     static constexpr int NIL = -1;       // mean empty
