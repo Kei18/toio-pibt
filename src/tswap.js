@@ -1,16 +1,14 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { NearScanner } = require('@toio/scanner');
 const { execSync } = require('child_process');
+const {
+  MOVE_SPEED,
+  MODE,
+  stay_at,
+  move,
+  main,
+} = require('./commons.js');
 
-const INTERVAL_MS = 100;
-const MOVE_SPEED = 80;
-const POS_BUF = 10;
-const INIT_TIME_MS = 1500;
-const GOAL_CHECK_MS = 1000;
-const END_TIME_MS = 1500;
-
-const MODE = { "CONTRACTED": 0, "EXTENDED": 1 };
 
 // read graph
 if (process.argv.length != 4) {
@@ -55,10 +53,6 @@ const getInitialSate = (id) => {
   };
 };
 
-const setupOccupiedTable = () => {
-  Object.keys(V).forEach(id => { OCCUPIED[id] = null; });
-};
-
 const setupDistTable = () => {
   // Floyd Warshall Algorithm
   const MAX_LEN = 10000000;
@@ -89,24 +83,22 @@ const setupDistTable = () => {
   }
 };
 
-const getNextLocation = (v_id, g_id) => {
+const getNextLocation = (v_id, g_id, agent_id) => {
   // return argmin(dist(u, g))
   let v_next_id = v_id;
   let min_d = DIST_TABLE[v_id][g_id];
+  let cands = [];
   V[v_id].neigh.forEach((u_id) => {
     let d = DIST_TABLE[u_id][g_id];
     if (d < min_d) {
       min_d = d;
       v_next_id = u_id;
+      cands = [ v_next_id ];
+    } else if (d == min_d) {
+      cands.push(u_id);
     }
   });
-  return v_next_id;
-};
-
-const stay_at = (pos, v_next_id) => {
-  // judge by Manhattan distance
-  const _pos = V[v_next_id].pos;
-  return Math.abs(pos.x - _pos.x) < POS_BUF && Math.abs(pos.y - _pos.y) < POS_BUF;
+  return cands[parseInt(agent_id, 16) % cands.length];
 };
 
 const updateState = (cube) => {
@@ -116,7 +108,7 @@ const updateState = (cube) => {
   if (AGENTS[id].mode == MODE.CONTRACTED) return;
 
   // still moving
-  if (!stay_at(AGENTS[id].pos, AGENTS[id].v_next)) return;
+  if (!stay_at(AGENTS[id].pos, V[AGENTS[id].v_next].pos)) return;
 
   // update mode
   AGENTS[id].mode = MODE.CONTRACTED;
@@ -127,34 +119,6 @@ const updateState = (cube) => {
   // update location
   AGENTS[id].v = AGENTS[id].v_next;
   AGENTS[id].v_next = null;
-};
-
-const getOccupyingAgentId = (next_loc_id) => {
-  return OCCUPIED[next_loc_id];
-};
-
-const initCube = (cube, init_loc_id) => {
-  // update occupancy
-  OCCUPIED[init_loc_id] = cube.id;
-
-  // move
-  cube.moveTo([ V[init_loc_id].pos ], {maxSpeed: MOVE_SPEED, moveType: 2});
-};
-
-const move = (cube, next_loc_id) => {
-  const id = cube.id;
-
-  // update occupancy
-  OCCUPIED[next_loc_id] = id;
-
-  // update mode
-  AGENTS[id].mode = MODE.EXTENDED;
-
-  // update other state
-  AGENTS[id].v_next = next_loc_id;
-
-  // move
-  cube.moveTo([ V[next_loc_id].pos ], {maxSpeed: MOVE_SPEED, moveType: 2});
 };
 
 const swapGoals = (agent1, agent2) => {
@@ -171,8 +135,8 @@ const checkAndResolveDeadlock = (original_id) => {
     if (agent.mode == MODE.EXTENDED) return;  // still someone is moving -> wait
     if (agent.v == agent.g) return;  // agents reaching goals -> not deadlock
 
-    let u_id = getNextLocation(agent.v, agent.g);
-    let id = getOccupyingAgentId(u_id);
+    let u_id = getNextLocation(agent.v, agent.g, agent.id);
+    let id = OCCUPIED[u_id];
 
     if (id == null) return;  // next_loc is free -> not deadlock
 
@@ -195,110 +159,57 @@ const checkAndResolveDeadlock = (original_id) => {
 
 };
 
-async function execution(cube) {
-
+const activation = (cube) => {
   const id = cube.id;
 
-  console.log(id, "start execution");
-  cube.playPresetSound(4);
+  // update state
+  updateState(cube);
 
-  // activation
-  setInterval(() => {
+  // get state
+  const me = AGENTS[id];
 
-    cube.turnOnLight({ durationMs: INTERVAL_MS, red: 0, green: 0, blue: 255 });
+  // still moving
+  if (me.mode == MODE.EXTENDED) return;
 
-    // update state
-    updateState(cube);
+  // check goal condition
+  if (me.v == me.g) return;
 
-    // get state
-    const me = AGENTS[id];
+  // get next location
+  const next_loc_id = getNextLocation(me.v, me.g, me.id);
 
-    // still moving
-    if (me.mode == MODE.EXTENDED) return;
+  // check occupancy
+  const other_id = OCCUPIED[next_loc_id];
 
-    // check goal condition
-    if (me.v == me.g) return;
-
-    // get next location
-    const next_loc_id = getNextLocation(me.v, me.g);
-
-    // check occupancy
-    const other_id = getOccupyingAgentId(next_loc_id);
-
-    // case: unoccupied
-    if (other_id == null) {
-      move(cube, next_loc_id);
-      return;
-    }
-
-    const other = AGENTS[other_id];
-
-    // case: occupied, still moving
-    if (other.mode == MODE.EXTENDED) return;  // wait
-
-    // case: occupied, staying at goal
-    if (other.v == other.g) {
-      swapGoals(id, other.id);
-      return;
-    }
-
-    // case: others -> check deadlocks
-    checkAndResolveDeadlock(id);
-
-  }, INTERVAL_MS);
-}
-
-async function main() {
-  setupOccupiedTable();
-  setupDistTable();
-
-  console.log("start assignment");
-  setInitialAssignment();
-  const NUM_AGENTS = Object.keys(INIT_STATES).length;
-
-  console.log("done, start connecting");
-
-  // initialization
-  const cubes = await new NearScanner(NUM_AGENTS).start();
-  for (let i = 0; i < NUM_AGENTS; ++i) {
-    console.log(cubes[i].id, i, "initialize");
-
-    // connect to the cube
-    let cube = await cubes[i].connect();
-
-    // get initial state and register
-    AGENTS[cube.id] = getInitialSate(cube.id);
-
-    // tracking position
-    cube.on('id:position-id', data => {
-      AGENTS[cube.id].pos = { "x": data["x"], "y": data["y"] };
-    });
-
-    // move to initial position
-    initCube(cube, AGENTS[cube.id].v);
+  // case: unoccupied
+  if (other_id == null) {
+    move(cube, next_loc_id, AGENTS, OCCUPIED, V);
+    return;
   }
-  console.log("---");
 
-  // execution
-  setTimeout(() => {
-    for (let i = 0; i < NUM_AGENTS; ++i) execution(cubes[i]);
-  }, INIT_TIME_MS);
+  const other = AGENTS[other_id];
 
-  // check termination
-  setInterval(() => {
-    for (let [id, agent] of Object.entries(AGENTS)) {
-      if (agent.mode == MODE.EXTENDED) return;  // still moving
-      if (agent.v != agent.g) return;  // not at goal
-    }
+  // case: occupied, still moving
+  if (other.mode == MODE.EXTENDED) return;  // wait
 
-    console.log("finish execution");
-    for (let i = 0; i < NUM_AGENTS; ++i) {
-      cubes[i].turnOffLight();
-      cubes[i].turnOnLight({ durationMs: END_TIME_MS, red: 0, green: 255, blue: 0 });
-    }
+  // case: occupied, staying at goal
+  if (other.v == other.g) {
+    swapGoals(id, other.id);
+    return;
+  }
 
-    setTimeout(() => {process.exit(0);}, GOAL_CHECK_MS/2);
-  }, GOAL_CHECK_MS);
+  // case: others -> check deadlocks
+  checkAndResolveDeadlock(id);
 };
 
-main();
+const checkTerminalCondition = () => {
+  for (let [id, agent] of Object.entries(AGENTS)) {
+    if (agent.mode == MODE.EXTENDED) return false;  // still moving
+    if (agent.v != agent.g) return false;  // not at goal
+  }
+  return true;
+};
+
+setupDistTable();
+setInitialAssignment();
+const NUM_AGENTS = Object.entries(INIT_STATES).length;
+main(AGENTS, OCCUPIED, V, NUM_AGENTS, getInitialSate, activation, checkTerminalCondition);
