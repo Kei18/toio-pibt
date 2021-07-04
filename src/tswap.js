@@ -42,7 +42,9 @@ const setInitialAssignment = () => {
   INIT_STATES = yaml.load(fs.readFileSync(filename_output), 'utf8');
 };
 
+let global_index = -1;
 const getInitialSate = (id) => {
+  global_index += 1;
   return {
     "id": id,
     "v": INIT_STATES[id].v,
@@ -50,6 +52,7 @@ const getInitialSate = (id) => {
     "v_next": null,
     "mode": MODE.CONTRACTED,
     "pos": {},
+    "index": global_index
   };
 };
 
@@ -83,7 +86,7 @@ const setupDistTable = () => {
   }
 };
 
-const getNextLocation = (v_id, g_id, agent_id) => {
+const getNextLocation = (v_id, g_id, index) => {
   // return argmin(dist(u, g))
   let v_next_id = v_id;
   let min_d = DIST_TABLE[v_id][g_id];
@@ -98,7 +101,16 @@ const getNextLocation = (v_id, g_id, agent_id) => {
       cands.push(u_id);
     }
   });
-  return cands[parseInt(agent_id, 16) % cands.length];
+
+  // tie break, occupancy
+  let cands_unoccupied = [];
+  cands.forEach(key => { if (OCCUPIED[key] === null) cands_unoccupied.push(key); });
+  if (cands_unoccupied.length > 0) {
+    return cands_unoccupied[index % cands_unoccupied.length];
+  }
+
+  // normal
+  return cands[index % cands.length];
 };
 
 const updateState = (cube) => {
@@ -135,7 +147,7 @@ const checkAndResolveDeadlock = (original_id) => {
     if (agent.mode == MODE.EXTENDED) return;  // still someone is moving -> wait
     if (agent.v == agent.g) return;  // agents reaching goals -> not deadlock
 
-    let u_id = getNextLocation(agent.v, agent.g, agent.id);
+    let u_id = getNextLocation(agent.v, agent.g, agent.index);
     let id = OCCUPIED[u_id];
 
     if (id == null) return;  // next_loc is free -> not deadlock
@@ -175,7 +187,7 @@ const activation = (cube) => {
   if (me.v == me.g) return;
 
   // get next location
-  const next_loc_id = getNextLocation(me.v, me.g, me.id);
+  const next_loc_id = getNextLocation(me.v, me.g, me.index);
 
   // check occupancy
   const other_id = OCCUPIED[next_loc_id];

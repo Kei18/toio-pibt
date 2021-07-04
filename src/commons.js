@@ -1,10 +1,11 @@
 const { NearScanner } = require('@toio/scanner');
+const { performance } = require('perf_hooks');
 
-const POS_BUF = 10;
+const POS_BUF = 15;
 const INIT_TIME_MS = 1500;
 const END_TIME_MS = 1500;
 const GOAL_CHECK_MS = 1000;
-const INTERVAL_MS = 100;
+const INTERVAL_MS = 50;
 const MOVE_SPEED = 80;
 const MODE = { "CONTRACTED": 0, "EXTENDED": 1 };
 
@@ -71,29 +72,57 @@ async function main (
 
   // execution
   setTimeout(() => {
+    // for time metrics
+    const time_start = performance.now();
+    let time_for_costs = {};
+    Object.keys(AGENTS).forEach(id => { time_for_costs[id] = time_start; });
+
+    // setup
     for (let i = 0; i < NUM_AGENTS; ++i) {
       let cube = cubes[i];
       console.log(cube.id, "start execution");
       cube.playPresetSound(4);
+
+      // main loop
       setInterval(() => {
+        // activation
         cube.turnOnLight({ durationMs: INTERVAL_MS, red: 0, green: 0, blue: 255 });
         activation(cube);
+        // update cost
+        if (AGENTS[cube.id].mode == MODE.EXTENDED) {
+          time_for_costs[cube.id] = null;
+        } else if (time_for_costs[cube.id] === null) {  // when EXTENDED -> CONTRACTED
+          time_for_costs[cube.id] = performance.now();
+        }
       }, INTERVAL_MS);
     }
+
+    // check termination
+    setInterval(() => {
+      if (!checkTerminalCondition()) return;
+
+      // print summary
+      let makespan = 0;
+      let sum_of_costs = 0;
+      Object.keys(AGENTS).forEach(id => {
+        const c = time_for_costs[id] - time_start;
+        sum_of_costs += c;
+        if (c > makespan) makespan = c;
+      });
+      console.log("finish execution");
+      console.log("makespan (sec): ", makespan);
+      console.log("sum_of_costs (sec): ", sum_of_costs);
+
+      // lighting
+      for (let i = 0; i < NUM_AGENTS; ++i) {
+        cubes[i].turnOffLight();
+        cubes[i].turnOnLight({ durationMs: END_TIME_MS, red: 0, green: 255, blue: 0 });
+      }
+
+      setTimeout(() => {process.exit(0);}, GOAL_CHECK_MS/2);
+    }, GOAL_CHECK_MS);
+
   }, INIT_TIME_MS);
-
-  // check termination
-  setInterval(() => {
-    if (!checkTerminalCondition()) return;
-
-    console.log("finish execution");
-    for (let i = 0; i < NUM_AGENTS; ++i) {
-      cubes[i].turnOffLight();
-      cubes[i].turnOnLight({ durationMs: END_TIME_MS, red: 0, green: 255, blue: 0 });
-    }
-
-    setTimeout(() => {process.exit(0);}, GOAL_CHECK_MS/2);
-  }, GOAL_CHECK_MS);
 };
 
 module.exports = {
@@ -103,3 +132,5 @@ module.exports = {
   move: move,
   main: main,
 };
+
+// TODO: add metrics
