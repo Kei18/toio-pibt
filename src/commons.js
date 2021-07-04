@@ -7,6 +7,8 @@ const END_TIME_MS = 1500;
 const GOAL_CHECK_MS = 1000;
 const INTERVAL_MS = 50;
 const MOVE_SPEED = 80;
+const MOVE_SPEED_SLOW = 15;
+const DELAY_PROB = 0;
 const MODE = { "CONTRACTED": 0, "EXTENDED": 1 };
 
 const stay_at = (pos, _pos) => {
@@ -27,7 +29,8 @@ const move = (cube, next_loc_id, AGENTS, OCCUPIED, V) => {
   AGENTS[id].v_next = next_loc_id;
 
   // move
-  cube.moveTo([ V[next_loc_id].pos ], {maxSpeed: MOVE_SPEED, moveType: 2});
+  let move_speed = (Math.random() >= DELAY_PROB) ? MOVE_SPEED : MOVE_SPEED_SLOW;
+  cube.moveTo([ V[next_loc_id].pos ], {maxSpeed: move_speed, moveType: 2});
 };
 
 async function main (
