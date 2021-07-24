@@ -29,15 +29,15 @@ make -C build
 ```
 
 ## Usage
-1. Switch on your toio robots
-1. Get the id of the toio robots
+- Step1: Switch on your toio robots
+- Step2: Get the id of the toio robots
 ```sh
 yarn run get_id 3
 ```
-1. Edit the id in the problem file `./sample/problem.yaml`
-1. You may also need to adjust coordinates, see `./sample/graph.yaml`
-1. Set the toio robots in appropriate positions
-1. Execute
+- Step3: Edit the id in the problem file `./sample/problem.yaml`
+- Step4: You may also need to adjust coordinates, see `./sample/graph.yaml`
+- Step5: Set the toio robots in appropriate positions
+- Step6: Execute!
 ```sh
 yarn run tswap ./sample/graph.yaml ./sample/problem.yaml
 ```
