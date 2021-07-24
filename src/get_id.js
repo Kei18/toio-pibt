@@ -1,3 +1,7 @@
+/*
+ * Get the toio id list
+ */
+
 const { NearScanner } = require('@toio/scanner');
 
 const colors = [
@@ -46,6 +50,7 @@ const colors = [
 if (process.argv.length != 3) {
   console.log("the number of toio is required!");
   console.log("> yarn run get_id {integer}");
+  process.exit(0);
 }
 
 const NUM_AGNETS = process.argv[2];

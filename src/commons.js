@@ -1,21 +1,35 @@
+/*
+ * This file contains common codes between TSWAP and MCPs
+ *
+ * Following variables will be used in this file:
+ * - AGENTS: robot states
+ * - OCCUPIED: occupancy of nodes
+ * For details, see tswap.js or mcps.js.
+ */
+
 const { NearScanner } = require('@toio/scanner');
 const { performance } = require('perf_hooks');
 
-const POS_BUF = 15;
-const INIT_TIME_MS = 1500;
-const END_TIME_MS = 1500;
-const GOAL_CHECK_MS = 1000;
-const INTERVAL_MS = 50;
-const MOVE_SPEED = 80;
-const MOVE_SPEED_SLOW = 15;
-const DELAY_PROB = 0;
+const POS_BUF = 15;          // accuracy of positions
+const INIT_TIME_MS = 3000;   // time before execution
+const END_TIME_MS = 1500;    // time after execution
+const GOAL_CHECK_MS = 1000;  // goal check frequency
+const INTERVAL_MS = 50;      // update frequency
+const MOVE_SPEED = 80;       // move speed
+
+// The following terms are from Okumura's time-independent planning (AAAI-21).
+// - CONTRACTED -> staying in one node
+// - EXTENDED -> moving betwen two nodes
 const MODE = { "CONTRACTED": 0, "EXTENDED": 1 };
 
+
+// determine whether a robot stays in one node or not
 const stay_at = (pos, _pos) => {
   // judge by Manhattan distance
   return Math.abs(pos.x - _pos.x) < POS_BUF && Math.abs(pos.y - _pos.y) < POS_BUF;
 };
 
+// move to another node
 const move = (cube, next_loc_id, AGENTS, OCCUPIED, V) => {
   const id = cube.id;
 
@@ -29,8 +43,7 @@ const move = (cube, next_loc_id, AGENTS, OCCUPIED, V) => {
   AGENTS[id].v_next = next_loc_id;
 
   // move
-  let move_speed = (Math.random() >= DELAY_PROB) ? MOVE_SPEED : MOVE_SPEED_SLOW;
-  cube.moveTo([ V[next_loc_id].pos ], {maxSpeed: move_speed, moveType: 2});
+  cube.moveTo([ V[next_loc_id].pos ], {maxSpeed: MOVE_SPEED, moveType: 2});
 };
 
 async function main (
@@ -113,8 +126,8 @@ async function main (
         if (c > makespan) makespan = c;
       });
       console.log("finish execution");
-      console.log("makespan (sec): ", makespan);
-      console.log("sum_of_costs (sec): ", sum_of_costs);
+      console.log("makespan (ms): ", makespan);
+      console.log("sum_of_costs (ms): ", sum_of_costs);
 
       // lighting
       for (let i = 0; i < NUM_AGENTS; ++i) {
@@ -135,5 +148,3 @@ module.exports = {
   move: move,
   main: main,
 };
-
-// TODO: add metrics
