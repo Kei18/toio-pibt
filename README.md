@@ -1,5 +1,6 @@
 toio-tswap
 ---
+![build](https://github.com/Kei18/toio-tswap/workflows/build/badge.svg?branch=master)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 Online TSWAP implementation using the [toio](https://toio.io/) robots.
