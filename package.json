@@ -5,8 +5,8 @@
     "packages/*",
     "src/*"
   ],
-  "repository": "https://github.com/Kei18/toio-exec.git",
-  "author": "Keisuke Okumura",
+  "repository": "",
+  "author": "anonymous authors",
   "license": "MIT",
   "scripts": {
     "build": "lerna run build",

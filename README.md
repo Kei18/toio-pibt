@@ -1,6 +1,5 @@
 toio-tswap
 ---
-![build](https://github.com/Kei18/toio-tswap/workflows/build_macos/badge.svg?branch=master)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 Online TSWAP implementation using the [toio](https://toio.io/) robots.
@@ -15,7 +14,6 @@ They are tested on MacOS 10.15.
 
 ## Install
 ```sh
-git clone --recursive https://github.com/Kei18/toio-tswap.git
 cd toio-tswap
 yarn install
 yarn build
@@ -31,7 +29,7 @@ make -C build
 yarn run get_id 3
 ```
 
-You will get the result, e.g., 
+You will get the result, e.g.,
 
 ```sh
 xxxxxxxx 0 green
@@ -54,7 +52,6 @@ yarn run mcps ./sample/graph.yaml ./sample/plan.yaml
 ```
 
 ## Experimental Setting
-[![v1.0](https://img.shields.io/badge/tag-v1.0-blue.svg?style=flat)](https://github.com/Kei18/toio-tswap/releases/tag/v1.0)
 
 The initial demo is in `sample/`.
 For the others, see `exp_settings/`.
@@ -67,10 +64,7 @@ This software is released under the MIT License, see [LICENCE.txt](LICENCE.txt).
 ## Notes
 - This repository is forked from [toio.js](https://github.com/toio/toio.js). To make the repo private temporarily, I duplicated the original repo.
 - The target assignment algorithm uses the Dijkstra algorithm instead of BFS. Therefore, the code is not limited to the grid environment, rather, it can work on graphs with non-uniform edge costs.
-- To convert data from the [unlabeled-MAPF repo](https://kei18.github.io/unlabeled-MAPF), see `notebooks/`. I prepared example codes written in Python (Jupyter Notebook).
-
-## Author
-[Keisuke Okumura](https://kei18.github.io) is a Ph.D. student at the Tokyo Institute of Technology, interested in controlling multiple moving agents.
+- To convert data from the unlabeled-MAPF repo, see `notebooks/`. I prepared example codes written in Python (Jupyter Notebook).
 
 ## Reference
 1. Ma, H., Kumar, T. K., & Koenig, S. (2017). Multi-agent path finding with delay probabilities. Proc. AAAI Conf. on Artificial Intelligence (AAAI)
