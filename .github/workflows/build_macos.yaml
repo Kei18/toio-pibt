@@ -1,4 +1,4 @@
-name: build
+name: build_macos
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     paths:
       - 'src/**'
       - 'target_assignment/**'
-      - '.github/workflows/build.yaml'
+      - '.github/workflows/build_macos.yaml'
 
 jobs:
   build:

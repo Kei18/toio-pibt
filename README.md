@@ -1,6 +1,6 @@
 toio-tswap
 ---
-![build](https://github.com/Kei18/toio-tswap/workflows/build/badge.svg?branch=master)
+![build](https://github.com/Kei18/toio-tswap/workflows/build_macos/badge.svg?branch=master)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 Online TSWAP implementation using the [toio](https://toio.io/) robots.
@@ -13,11 +13,6 @@ They are tested on MacOS 10.15.
 
 ![8x8, 8 robots](./material/8x8.gif)
 
-## Requirements
-- [toio](https://toio.io/)
-- [yarn](https://yarnpkg.com/)
-- [CMake](https://cmake.org/) (v≥v3.16)
-
 ## Install
 ```sh
 git clone --recursive https://github.com/Kei18/toio-tswap.git
@@ -29,15 +24,26 @@ make -C build
 ```
 
 ## Usage
-- Step1: Switch on your toio robots
+- Step1: Switch on your toio robots and Bluetooth of your PC
 - Step2: Get the id of the toio robots
+
 ```sh
 yarn run get_id 3
 ```
+
+You will get the result, e.g., 
+
+```sh
+xxxxxxxx 0 green
+yyyyyyyy 1 blue
+zzzzzzzz 2 red
+```
+
 - Step3: Edit the id in the problem file `./sample/problem.yaml`
 - Step4: You may also need to adjust coordinates, see `./sample/graph.yaml`
 - Step5: Set the toio robots in appropriate positions
 - Step6: Execute!
+
 ```sh
 yarn run tswap ./sample/graph.yaml ./sample/problem.yaml
 ```
@@ -48,6 +54,8 @@ yarn run mcps ./sample/graph.yaml ./sample/plan.yaml
 ```
 
 ## Experimental Setting
+[![v1.0](https://img.shields.io/badge/tag-v1.0-blue.svg?style=flat)](https://github.com/Kei18/toio-tswap/releases/tag/v1.0)
+
 The initial demo is in `sample/`.
 For the others, see `exp_settings/`.
 I make the id of toio nonpublic, so you have to change the id when you test the settings.
@@ -65,4 +73,4 @@ This software is released under the MIT License, see [LICENCE.txt](LICENCE.txt).
 [Keisuke Okumura](https://kei18.github.io) is a Ph.D. student at the Tokyo Institute of Technology, interested in controlling multiple moving agents.
 
 ## Reference
-1. Ma, H., Kumar, T. K., & Koenig, S. (2016). Multi-agent path finding with delay probabilities. arXiv preprint arXiv:1612.05309.
+1. Ma, H., Kumar, T. K., & Koenig, S. (2017). Multi-agent path finding with delay probabilities. Proc. AAAI Conf. on Artificial Intelligence (AAAI)
