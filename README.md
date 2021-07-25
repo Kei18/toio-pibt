@@ -14,7 +14,8 @@ They are tested on MacOS 10.15.
 
 ## Install
 ```sh
-cd toio-tswap
+cd {this repo}
+git clone https://github.com/jbeder/yaml-cpp.git third_party/yaml-cpp
 yarn install
 yarn build
 cmake -B build ./target_assignment/
