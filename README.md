@@ -16,15 +16,14 @@ They are tested on MacOS 10.15.
 - [toio](https://toio.io/)
 - [yarn](https://yarnpkg.com/)
 - [CMake](https://cmake.org/) (v≥v3.16)
-- [yaml-cpp](https://github.com/jbeder/yaml-cpp)
 
 ## Install
 ```sh
-git clone https://github.com/Kei18/toio-tswap.git
+git clone --recursive https://github.com/Kei18/toio-tswap.git
 cd toio-tswap
 yarn install
 yarn build
-cmake -B build
+cmake -B build ./target_assignment/
 make -C build
 ```
 
