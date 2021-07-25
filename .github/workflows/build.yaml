@@ -1,0 +1,27 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/**'
+      - 'target_assignment/**'
+      - '.github/workflows/build.yml'
+
+jobs:
+  build:
+    runs-on: macos-10.15
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: build
+        run: |
+          ls -all
+          yarn install
+          yarn build
+          cmake -B build ./target_assignment/
+          make -C build
