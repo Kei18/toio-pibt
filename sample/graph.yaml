@@ -59,9 +59,3 @@
   pos:
     x: 150
     y: 740
-'9':  # dummy, to avoid yaml-cpp error
-  neigh:
-    - '9'
-  pos:
-    x: 150
-    y: 740
