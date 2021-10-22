@@ -3,13 +3,13 @@ const yaml = require('js-yaml');
 const { NearScanner } = require('@toio/scanner');
 
 // define duration of one timestep
-const INTERVAL_MS = 900;
+const INTERVAL_MS = 925;
 
 // waiting time before execution
 const SETUP_MS = 1000;
 
 // move speed
-const MOVE_SPEED = 50;
+const MOVE_SPEED = 70;
 
 // info of all agents
 let AGENTS = {};
@@ -67,7 +67,8 @@ const move = (cube, next_loc_id) => {
   const id = cube.id;
 
   // move
-  cube.moveTo([ V[next_loc_id].pos ], {maxSpeed: MOVE_SPEED, moveType: 2});
+  cube.moveTo([ V[next_loc_id].pos ],
+              {maxSpeed: MOVE_SPEED, moveType: 2, speedType: 3});
   console.log("agent-" + id + " moves to node-" + next_loc_id +
               " (" + V[next_loc_id].pos.x + ", " + V[next_loc_id].pos.y + ")");
 };
@@ -223,23 +224,27 @@ async function main () {
 
   // start lifelong MAPF
   setInterval(() => {
+    // update goal
+    for (let i = 0; i < NUM_AGENTS; ++i) {
+      let cube = cubes[i];
+      let id = cube.id;
+      if (AGENTS[id].v_next == AGENTS[id].g) {
+        cube.turnOnLight({ durationMs: 200, red: 0, green: 255, blue: 0 });
+        cube.playPresetSound(1);
+        assignGoalRandomly(id);
+        let g_id = AGENTS[id].g;
+        console.log("agent-" + id + " updates the goal to node-" + g_id +
+                    " (" + V[g_id].pos.x + ", " + V[g_id].pos.y + ")");
+      }
+    }
+
     // planning
     planOneStep();
 
     // acting
     for (let i = 0; i < NUM_AGENTS; ++i) {
       let cube = cubes[i];
-      let id = cube.id;
-      move(cube, AGENTS[id].v_next);
-
-      // update goal
-      if (AGENTS[id].v_next == AGENTS[id].g) {
-        cube.turnOnLight({ durationMs: 200, red: 0, green: 255, blue: 0 });
-        assignGoalRandomly(id);
-        let g_id = AGENTS[id].g;
-        console.log("agent-" + id + " updates the goal to node-" + g_id +
-                    " (" + V[g_id].pos.x + ", " + V[g_id].pos.y + ")");
-      }
+      move(cube, AGENTS[cube.id].v_next);
     }
   }, INTERVAL_MS);
 };
