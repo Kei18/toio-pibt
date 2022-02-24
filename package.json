@@ -1,11 +1,11 @@
 {
   "private": true,
-  "name": "toio-exec",
+  "name": "toio-pibt",
   "workspaces": [
     "packages/*",
     "src/*"
   ],
-  "repository": "https://github.com/Kei18/toio-exec.git",
+  "repository": "https://github.com/Kei18/toio-pibt.git",
   "author": "Keisuke Okumura",
   "license": "MIT",
   "scripts": {
